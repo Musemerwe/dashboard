@@ -13,6 +13,13 @@ export type ChartConfig = {
   [k: string]: {
     label?: React.ReactNode
     icon?: React.ComponentType
+    formatter?: (
+      value: number,
+      name: string,
+      item: TooltipProps["payload"][number],
+      index: number,
+      fullPayload: unknown
+    ) => React.ReactNode
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<keyof typeof THEMES, string> }
@@ -25,7 +32,7 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
-function useChart() /*: ChartContextProps*/ {
+function useChart(): ChartContextProps {
   const context = React.useContext(ChartContext)
   if (!context) {
     throw new Error("useChart must be used within a <ChartContainer />")
@@ -44,7 +51,7 @@ function ChartContainer({
   children: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["children"]
-}) /*: JSX.Element*/ {
+}): JSX.Element {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
 
@@ -74,7 +81,7 @@ const ChartStyle = ({
 }: {
   id: string
   config: ChartConfig
-}) /*: JSX.Element | null*/ => {
+}): JSX.Element | null => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color
   )
@@ -127,7 +134,7 @@ function ChartTooltipContent({
   label,
   labelFormatter,
   ...props
-}: ChartTooltipContentProps) /*: JSX.Element | null*/ {
+}: ChartTooltipContentProps): JSX.Element | null {
   const { config } = useChart()
 
   if (!active || !payload || !payload.length) {
@@ -142,7 +149,8 @@ function ChartTooltipContent({
   return (
     <div
       className={cn(
-        "rounded-md border bg-popover px-4 py-2 text-popover-foreground shadow-lg min-w-[120px] max-w-xs"
+        "rounded-md border bg-popover px-4 py-2 text-popover-foreground shadow-lg min-w-[120px] max-w-xs",
+        className
       )}
       {...props}
     >
@@ -155,10 +163,7 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           if (!item) return null
           const itemConfig = config[item.name as string]
-          const formatter =
-            itemConfig && "formatter" in itemConfig
-              ? (itemConfig as any).formatter
-              : undefined
+          const formatter = itemConfig?.formatter
 
           return (
             <div
@@ -173,11 +178,7 @@ function ChartTooltipContent({
                   className="inline-block rounded-full"
                   style={{
                     backgroundColor:
-                      (itemConfig &&
-                        ("color" in itemConfig
-                          ? itemConfig.color
-                          : undefined)) ||
-                      `var(--color-${item.name})`,
+                      itemConfig?.color || `var(--color-${item.name})`,
                     width: 10,
                     height: 10,
                     marginRight: 4,
@@ -207,7 +208,7 @@ function ChartTooltipContent({
 }
 
 const ChartLegendContent = () => {
-  // You can implement legend content as needed or export a placeholder
+  // Optional: You can implement a legend layout here
   return null
 }
 
